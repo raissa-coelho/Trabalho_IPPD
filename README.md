@@ -2,10 +2,10 @@
 Trabalho de implementação para a cadeira de IPPD 
 
 # Sobre
-Projeto: Processamento de arquivos CSV
-Linguagem de programação: RUST
+Projeto: Processamento de arquivos CSV </br>
+Linguagem de programação: RUST </br>
 
 # Colaboradores
-[Raíssa Nunes Coelho](https://github.com/raissa-coelho)
-[Maria Eduarda Carmona](https://github.com/maducarmona)
-[Gerson Menezes](https://github.com/GersonMenezes)
+[Raíssa Nunes Coelho](https://github.com/raissa-coelho)</br>
+[Maria Eduarda Carmona](https://github.com/maducarmona)</br>
+[Gerson Menezes](https://github.com/GersonMenezes)</br>
