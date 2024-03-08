@@ -2,7 +2,10 @@
 name = "trabalho_r"
 version = "0.1.0"
 edition = "2021"
+authors = ["Raíssa Coelho", "Maria Cardoma", "Gerson Menezes"]
+description = "Processamento de arquivos CSV"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+csv = "1.3.0"
