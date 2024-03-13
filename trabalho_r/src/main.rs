@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use csv::{Reader, WriterBuilder};
+use std::time::{Instant};
 
 fn merge_csv_file<P: AsRef<Path>>(file_path: P, file_path2: P) -> Result<(), Box<dyn Error>> {
     let output_path = PathBuf::from("merged.csv");
@@ -38,15 +39,17 @@ fn merge_csv_file<P: AsRef<Path>>(file_path: P, file_path2: P) -> Result<(), Box
     Ok(())
 }
 
-fn menu(){
-    println!("Arquivos CSV");
-}
-
 fn main() {
-    menu();
+ 
+    println!("Arquivos CSV");
 
+    let start = Instant::now();
+ 
     if let Err(err) = merge_csv_file("sample_integers.csv", "sample_integers2.csv") {
         eprintln!("Error: {}", err);
     }
-    println!("Concluído.");
+ 
+    let fim = start.elapsed();
+    let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
+    println!("Concluído em {:.3}s.", elapsed_secs);
 }
