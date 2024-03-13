@@ -5,6 +5,13 @@ use std::path::{Path, PathBuf};
 use csv::{Reader, WriterBuilder};
 use std::time::{Instant};
 
+
+/* Processamento de arquivos CSV */
+/*Estratégia:
+MPI for inter-node communication (across different machines or processes)
+Rayon for intra-node parallelism (within a single machine or process) */
+
+
 fn merge_csv_file<P: AsRef<Path>>(file_path: P, file_path2: P) -> Result<(), Box<dyn Error>> {
     let output_path = PathBuf::from("merged.csv");
     
@@ -39,17 +46,39 @@ fn merge_csv_file<P: AsRef<Path>>(file_path: P, file_path2: P) -> Result<(), Box
     Ok(())
 }
 
+// checa número de colunas
+fn checa_size<P: AsRef<Path>>(file1: P) -> Result<usize, Box<dyn Error>>{
+    // Arquivo 
+    let file = File::open(file1)?;
+    let mut rdr = Reader::from_reader(file);
+
+    let headers = rdr.headers()?.clone();
+
+    Ok(headers.len())
+}
+
 fn main() {
  
     println!("Arquivos CSV");
-
-    let start = Instant::now();
+    
+    // número de colunas de cada um
+    let a = checa_size("sample_integers.csv");
+    let b = checa_size("sample_integers2.csv");
+    
+    // checa se possuem o mesmo número de colunas
+    if a.unwrap() == b.unwrap() {
+        let start = Instant::now();
+    
+        println!("Juntando...");
+        if let Err(err) = merge_csv_file("sample_integers.csv", "sample_integers2.csv") {
+            eprintln!("Error: {}", err);
+        }
  
-    if let Err(err) = merge_csv_file("sample_integers.csv", "sample_integers2.csv") {
-        eprintln!("Error: {}", err);
+        let fim = start.elapsed();
+        let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
+        println!("Concluído em {:.3}s.", elapsed_secs);
+    }else{
+        println!("Arquivos CSV diferentes");
     }
- 
-    let fim = start.elapsed();
-    let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
-    println!("Concluído em {:.3}s.", elapsed_secs);
+
 }
