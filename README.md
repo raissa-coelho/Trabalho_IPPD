@@ -10,6 +10,7 @@ Dentro da pasta trabalho_r rode o comando:
 
 ```
 cargo run
+mpirun -n 4 ./target/debug/trabalho_r
 ```
 
 # Colaboradores
