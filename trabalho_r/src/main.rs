@@ -117,10 +117,11 @@ fn checa_size<P: AsRef<Path>>(file1: P) -> Result<usize, Box<dyn Error>> {
 }
 
 fn main() {
+    // args da linha de comando
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 5 {
-        println!("Usar: {} <file_path>", args[0]);
+        println!("Usar: {} <file1.csv> <file2.csv> <file3.csv> <file4.csv>", args[0]);
         return;
     }
 

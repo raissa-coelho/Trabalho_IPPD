@@ -5,12 +5,19 @@ Trabalho de implementação para a cadeira de IPPD
 Projeto: Processamento de arquivos CSV </br>
 Linguagem de programação: RUST </br>
 
+## Especificações
+Arquivos precisam ser ter o mesmo número de colunas.
+
 # Como Rodar
 Dentro da pasta trabalho_r rode o comando:
 
 ```
-cargo run
-mpirun -n 4 ./target/debug/trabalho_r
+mpirun -n 4 cargon run <arquivo1.csv> <arquivo2.csv> <arquivo3.csv> <arquivo4.csv>
+```
+
+## Rodar exemplo
+```
+mpirun -n 4 cargon run <car_prices1.csv> <car_prices2.csv> <car_prices3.csv> <car_prices4.csv>
 ```
 
 # Colaboradores
