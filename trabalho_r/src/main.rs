@@ -1,10 +1,10 @@
+use csv::{Reader, WriterBuilder};
+use mpi::traits::*;
+use rayon::prelude::*;
 use std::error::Error;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-use csv::{Reader, WriterBuilder};
-use mpi::traits::*;
-use rayon::prelude::*;
 
 /* Processamento de arquivos CSV */
 /* Estratégia:
@@ -31,18 +31,75 @@ fn merge_csv<P: AsRef<Path>>(file_path: P, file_path2: P, rank: i32) -> Result<(
     // Coletar registros do arquivo 2
     let records2: Vec<_> = rdr2.records().collect::<Result<Vec<_>, _>>()?;
 
-    // Escrever registros em paralelo
+    // Escrever registros 
     let mut wtr = WriterBuilder::new().from_writer(output_file);
     wtr.write_record(rdr.headers()?)?;
 
+    // preciso desse código para não perder a 1a linha do segundo arquivo
+    // tem que ser no rank 0 senão replica
+    if rank == 0 {
+        wtr.write_record(rdr2.headers()?)?;
+    }
 
     // vetor em paralelo
-    let all_records: Vec<_> = records1.into_par_iter().chain(records2.into_par_iter()).collect();
+    let all_records: Vec<_> = records1
+        .into_par_iter()
+        .chain(records2.into_par_iter())
+        .collect();
 
-        all_records.into_iter().try_for_each(|record| -> Result<(), Box<dyn Error>> {
+    all_records
+        .into_iter()
+        .try_for_each(|record| -> Result<(), Box<dyn Error>> {
             wtr.write_record(&record)?;
             Ok(())
         })?;
+
+    Ok(())
+}
+
+fn add_csv_columns_and_output(
+    file_path1: &str,
+    file_path2: &str,
+    rank: i32,
+) -> Result<(), Box<dyn Error>> {
+    let output_file_path = PathBuf::from(format!("somado_{}.csv", rank));
+
+    // Arquivo 1
+    let mut rdr1 = Reader::from_path(file_path1)?;
+
+    // Arquivo 2
+    let mut rdr2 = Reader::from_path(file_path2)?;
+
+    // Arquivo de output
+    let output_file = File::create(&output_file_path)?;
+
+    let records1: Vec<_> = rdr1.records().collect::<Result<Vec<_>, _>>()?;
+    let records2: Vec<_> = rdr2.records().collect::<Result<Vec<_>, _>>()?;
+
+    let results: Vec<_> = records1.into_par_iter().zip(records2.into_par_iter())
+        .filter_map(|(record1, record2)| {
+            let value1: i32 = record1.get(0).and_then(|v| v.parse().ok())?;
+            let value2: i32 = record1.get(1).and_then(|v| v.parse().ok())?;
+            let value3: i32 = record2.get(0).and_then(|v| v.parse().ok())?;
+            let value4: i32 = record2.get(1).and_then(|v| v.parse().ok())?;
+
+            let sum1 = value1 + value2;
+            let sum2 = value3 + value4;
+
+            Some(vec![sum1.to_string(), sum2.to_string()])
+        })
+        .collect();
+
+
+    // Escrever registros sequêncialmente para evitar corrupção de dados
+    let mut wtr = WriterBuilder::new().from_writer(output_file);
+
+    for result in results {
+        wtr.write_record(&result)?;
+    }
+
+    // Pra verificar que todo o buffer foi escrito antes de sair da fn
+    wtr.flush()?;
 
     Ok(())
 }
@@ -64,33 +121,43 @@ fn main() {
     let rank = world.rank();
 
     if rank == 0 {
-    println!("Arquivos CSV");
+        println!("Arquivos CSV");
     }
     // número de colunas de cada um
     let a = checa_size("car_prices.csv").unwrap();
     let b = checa_size("car_prices2.csv").unwrap();
-    
+    let c = checa_size("car_prices3.csv").unwrap();
+    let d = checa_size("car_prices4.csv").unwrap();
+
     // checa se possuem o mesmo número de colunas
-    if a == b {
+    if a == b && b == c && c == d {
         let start = Instant::now();
 
         world.barrier();
 
         if rank == 0 {
-            println!("Juntando...");
-
-            if let Err(err) = merge_csv("car_prices.csv", "car_prices2.csv", rank) {
+            if let Err(err) = add_csv_columns_and_output("car_prices.csv", "car_prices2.csv", rank)
+            {
                 eprintln!("Error: {}", err);
             }
-            let fim = start.elapsed();
-            let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
-            println!("Concluído em {:.3}s.", elapsed_secs);
+            if let Err(err) =
+                add_csv_columns_and_output("car_prices3.csv", "car_prices4.csv", rank + 1)
+            {
+                eprintln!("Error: {}", err);
+            }
+
+            println!("Juntando...");
+
+            if let Err(err) = merge_csv("somado_0.csv", "somado_1.csv", rank) {
+                eprintln!("Error: {}", err);
+            }
+            if rank == 0 {
+                let fim = start.elapsed();
+                let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
+                println!("Concluído em {:.3}s.", elapsed_secs);
+            }
         }
-
     } else {
-        
-            println!("Arquivos CSV diferentes");
-        
+        println!("Arquivos CSV diferentes");
     }
-
 }
