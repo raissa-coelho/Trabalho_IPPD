@@ -40,10 +40,12 @@ fn merge_csv<P: AsRef<Path>>(file_path: P, file_path2: P, rank: i32) -> Result<(
     // vetor em paralelo
     let all_records: Vec<_> = records1.into_par_iter().chain(records2.into_par_iter()).collect();
 
-    all_records.into_iter().try_for_each(|record| -> Result<(), Box<dyn Error>> {
-        wtr.write_record(&record)?;
-        Ok(())
-    })?;
+    if rank == 0 {
+        all_records.into_iter().try_for_each(|record| -> Result<(), Box<dyn Error>> {
+            wtr.write_record(&record)?;
+            Ok(())
+        })?;
+    }
 
     Ok(())
 }
@@ -64,33 +66,34 @@ fn main() {
     let world = universe.world();
     let rank = world.rank();
 
+    if rank == 0 {
     println!("Arquivos CSV");
-
+    }
     // número de colunas de cada um
     let a = checa_size("car_prices.csv").unwrap();
     let b = checa_size("car_prices2.csv").unwrap();
-
+    
     // checa se possuem o mesmo número de colunas
     if a == b {
         let start = Instant::now();
 
-        println!("Juntando...");
-
-        if let Err(err) = merge_csv("car_prices.csv", "car_prices2.csv", rank) {
-            eprintln!("Error: {}", err);
-        }
-
         world.barrier();
 
         if rank == 0 {
+            println!("Juntando...");
+
+            if let Err(err) = merge_csv("car_prices.csv", "car_prices2.csv", rank) {
+                eprintln!("Error: {}", err);
+            }
             let fim = start.elapsed();
             let elapsed_secs = fim.as_secs() as f64 + f64::from(fim.subsec_millis()) / 1000.0;
             println!("Concluído em {:.3}s.", elapsed_secs);
         }
 
     } else {
-        if rank == 0 {
+        
             println!("Arquivos CSV diferentes");
-        }
+        
     }
+
 }
