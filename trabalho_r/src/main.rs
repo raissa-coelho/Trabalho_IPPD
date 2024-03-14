@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
+use std::env;
 
 /* Processamento de arquivos CSV */
 /* Estratégia:
@@ -116,6 +117,18 @@ fn checa_size<P: AsRef<Path>>(file1: P) -> Result<usize, Box<dyn Error>> {
 }
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 5 {
+        println!("Usar: {} <file_path>", args[0]);
+        return;
+    }
+
+    let ar1 = &args[1];
+    let ar2 = &args[2];
+    let ar3 = &args[3];
+    let ar4 = &args[4];
+
     let universe = mpi::initialize().unwrap();
     let world = universe.world();
     let rank = world.rank();
@@ -124,10 +137,10 @@ fn main() {
         println!("Arquivos CSV");
     }
     // número de colunas de cada um
-    let a = checa_size("car_prices.csv").unwrap();
-    let b = checa_size("car_prices2.csv").unwrap();
-    let c = checa_size("car_prices3.csv").unwrap();
-    let d = checa_size("car_prices4.csv").unwrap();
+    let a = checa_size(ar1).unwrap();
+    let b = checa_size(ar2).unwrap();
+    let c = checa_size(ar3).unwrap();
+    let d = checa_size(ar4).unwrap();
 
     // checa se possuem o mesmo número de colunas
     if a == b && b == c && c == d {
@@ -136,12 +149,12 @@ fn main() {
         world.barrier();
 
         if rank == 0 {
-            if let Err(err) = add_csv_columns_and_output("car_prices.csv", "car_prices2.csv", rank)
+            if let Err(err) = add_csv_columns_and_output(ar1, ar2, rank)
             {
                 eprintln!("Error: {}", err);
             }
             if let Err(err) =
-                add_csv_columns_and_output("car_prices3.csv", "car_prices4.csv", rank + 1)
+                add_csv_columns_and_output(ar3, ar4, rank + 1)
             {
                 eprintln!("Error: {}", err);
             }
