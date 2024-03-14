@@ -33,19 +33,16 @@ fn merge_csv<P: AsRef<Path>>(file_path: P, file_path2: P, rank: i32) -> Result<(
 
     // Escrever registros em paralelo
     let mut wtr = WriterBuilder::new().from_writer(output_file);
-    if rank == 0 {
-        wtr.write_record(rdr.headers()?)?;
-    }
+    wtr.write_record(rdr.headers()?)?;
+
 
     // vetor em paralelo
     let all_records: Vec<_> = records1.into_par_iter().chain(records2.into_par_iter()).collect();
 
-    if rank == 0 {
         all_records.into_iter().try_for_each(|record| -> Result<(), Box<dyn Error>> {
             wtr.write_record(&record)?;
             Ok(())
         })?;
-    }
 
     Ok(())
 }
